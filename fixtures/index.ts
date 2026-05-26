@@ -3,6 +3,7 @@ import { rootLogger, loggerStorage } from '../logger';
 import { HomePage } from '../pages/home.page';
 import { LeadFormPage } from '../pages/lead-form.page';
 import { SearchPage } from '../pages/search.page';
+import { ProgramsPage } from '../pages/programs.page';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -12,6 +13,7 @@ type CustomFixtures = {
   homePage: HomePage;
   leadFormPage: LeadFormPage;
   searchPage: SearchPage;
+  programsPage: ProgramsPage;
 };
 
 /**
@@ -67,6 +69,11 @@ export const test = base.extend<CustomFixtures & { _loggerAuto: void }>({
   searchPage: async ({ page }, use) => {
     const searchPage = new SearchPage(page);
     await use(searchPage);
+  },
+  
+  programsPage: async ({ page }, use) => {
+    const programsPage = new ProgramsPage(page);
+    await use(programsPage);
   },
 });
 
