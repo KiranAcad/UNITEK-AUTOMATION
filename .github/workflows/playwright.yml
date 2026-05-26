@@ -42,14 +42,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "🚀 Triggered by Pull Request. Running Smoke/Sanity Tests..."
-            npm run test:smoke
-          else
-            echo "🔥 Triggered by ${{ github.event_name }}. Running Full Regression Tests..."
-            npm run test:qa -- --project=chromium
-          fi
+        run: npm run test:qa -- --project=chromium
         env:
           TEST_ENV: qa
           CI: true
