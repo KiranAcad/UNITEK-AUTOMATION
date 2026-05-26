@@ -1,0 +1,36 @@
+{
+  "validLead": {
+    "campus": "Fremont, CA",
+    "program": "Medical Assisting",
+    "firstName": "John",
+    "lastName": "Doe",
+    "phone": "5551234567",
+    "email": "john.doe@testautomation.com"
+  },
+  "invalidLead": {
+    "campus": "",
+    "program": "",
+    "firstName": "",
+    "lastName": "",
+    "phone": "invalid",
+    "email": "not-an-email"
+  },
+  "alternativeLead": {
+    "campus": "Sacramento, CA",
+    "program": "Vocational Nursing",
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "phone": "5559876543",
+    "email": "jane.smith@testautomation.com"
+  },
+  "bottomFormData": {
+    "firstName": "Test",
+    "lastName": "User",
+    "email": "test.user@testautomation.com",
+    "phone": "5551112222",
+    "state": "CA",
+    "zipcode": "94538",
+    "campus": "Fremont, CA",
+    "program": "Medical Assisting"
+  }
+}
