@@ -119,7 +119,7 @@ test.describe('Homepage 100% Comprehensive Verification Suite @homepage-comp', (
   // ███ GROUP 2: Top Bar & Main Navigation ███
   // ═══════════════════════════════════════════════════════
 
-  test('TC-HPC-05: Verify top bar logo, search icon, phone link, and Get Info CTA', async ({ homePage, page }) => {
+  test('TC-HPC-05: Verify top bar logo, search icon, phone link, and Get Info CTA @smoke @sanity', async ({ homePage, page }) => {
     logger.info('Starting TC-HPC-05: Top bar elements visibility and alignment');
 
     logger.info('Asserting brand logo is visible');
