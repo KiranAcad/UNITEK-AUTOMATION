@@ -14,16 +14,16 @@ permissions:
   pages: write
   id-token: write
 
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
 jobs:
   test:
-    name: Run Playwright Tests (${{ matrix.project }})
+    name: Execute Playwright Test Suite
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    strategy:
-      fail-fast: false
-      matrix:
-        project: [chromium, firefox, webkit]
+    timeout-minutes: 25
 
     steps:
       - name: Checkout repository
@@ -38,71 +38,39 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps ${{ matrix.project }}
+      - name: Install Playwright browsers with OS dependencies
+        run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: npx playwright test --project=${{ matrix.project }}
+        run: npm run test:qa
         env:
           TEST_ENV: qa
           CI: true
 
-      - name: Upload HTML Report
+      - name: Prepare report for GitHub Pages
+        if: always()
+        run: |
+          mkdir -p reports
+          if [ -f reports/custom-report.html ]; then
+            cp reports/custom-report.html reports/index.html
+          fi
+
+      - name: Upload Test Report Artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: html-report-${{ matrix.project }}
-          path: reports/html-report/
+          name: playwright-custom-report
+          path: reports/
           retention-days: 30
 
-      - name: Upload Allure Results
-        uses: actions/upload-artifact@v4
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
         if: always()
         with:
-          name: allure-results-${{ matrix.project }}
-          path: allure-results/
-          retention-days: 30
+          path: reports/
 
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
         if: always()
-        with:
-          name: test-results-${{ matrix.project }}
-          path: |
-            test-results/
-            reports/test-results.json
-            screenshots/
-            logs/
-          retention-days: 14
 
-  report:
-    name: Generate Consolidated Report
-    needs: test
-    runs-on: ubuntu-latest
-    if: always()
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download all Allure results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: allure-results-*
-          path: allure-results-all
-          merge-multiple: true
-
-      - name: Generate Allure Report
-        uses: simple-elf/allure-report-action@master
-        if: always()
-        with:
-          allure_results: allure-results-all
-          allure_history: allure-history
-
-      - name: Upload Allure Report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: allure-report-consolidated
-          path: allure-history/
-          retention-days: 30
