@@ -1,23 +1,20 @@
 name: Playwright Tests
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
-    branches: [main]
-  schedule:
-    - cron: '0 6 * * *'   # Daily at 6 AM UTC
-  workflow_dispatch:        # Manual trigger
+    branches:
+      - main
+      - develop
+
+  push:
+    branches:
+      - main
+      - develop
+
+  workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-concurrency:
-  group: 'pages'
-  cancel-in-progress: true
 
 jobs:
   test:
@@ -33,12 +30,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers with OS dependencies
+      - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
@@ -47,30 +44,10 @@ jobs:
           TEST_ENV: qa
           CI: true
 
-      - name: Prepare report for GitHub Pages
+      - name: Upload Playwright Report
         if: always()
-        run: |
-          mkdir -p reports
-          if [ -f reports/custom-report.html ]; then
-            cp reports/custom-report.html reports/index.html
-          fi
-
-      - name: Upload Test Report Artifact
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: playwright-custom-report
+          name: playwright-report
           path: reports/
           retention-days: 30
-
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        if: always()
-        with:
-          path: reports/
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-        if: always()
-
