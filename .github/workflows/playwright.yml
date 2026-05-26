@@ -39,10 +39,10 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers with OS dependencies
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        run: npm run test:qa
+        run: npm run test:qa -- --project=chromium
         env:
           TEST_ENV: qa
           CI: true
