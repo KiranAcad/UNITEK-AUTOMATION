@@ -464,10 +464,23 @@ class CustomReporter implements Reporter {
 
     /* --- Expandable details --- */
     .test-details {
-      display: none;
+      display: block;
       background-color: var(--bg-item);
       border-top: 1px solid var(--border-color);
       padding: 1.25rem;
+    }
+
+    .chevron-arrow {
+      display: inline-block;
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      margin-left: 0.75rem;
+      transition: transform 0.2s ease;
+      transform: rotate(0deg);
+    }
+
+    .test-item.expanded .chevron-arrow {
+      transform: rotate(90deg);
     }
 
     /* --- Chronological Steps Executed --- */
@@ -685,6 +698,10 @@ class CustomReporter implements Reporter {
         <button class="filter-btn" data-status="failed" style="border-bottom: 2px solid var(--color-danger)">Failed</button>
         <button class="filter-btn" data-status="skipped" style="border-bottom: 2px solid var(--color-warning)">Skipped</button>
       </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="filter-btn" style="background-color: rgba(99,102,241,0.05); color: #818cf8; border-color: rgba(99,102,241,0.2);" onclick="toggleAllDetails(true)">Expand All</button>
+        <button class="filter-btn" onclick="toggleAllDetails(false)">Collapse All</button>
+      </div>
     </div>
 
     <div class="test-list" id="test-list-container">
@@ -730,7 +747,7 @@ class CustomReporter implements Reporter {
 
       filtered.forEach(test => {
         const item = document.createElement('div');
-        item.className = 'test-item ' + test.status;
+        item.className = 'test-item expanded ' + test.status;
         
         let stepsHtml = '';
         if (test.steps && test.steps.length > 0) {
@@ -755,7 +772,7 @@ class CustomReporter implements Reporter {
         }
 
         const detailsHtml = \`
-          <div class="test-details" id="details-\${test.id}">
+          <div class="test-details" id="details-\${test.id}" style="display: block;">
             \${test.error ? \`
               <div class="error-alert">
                 <div class="error-title">Failure Message</div>
@@ -782,6 +799,7 @@ class CustomReporter implements Reporter {
               <span class="test-browser">\${escapeHtml(test.browser)}</span>
               <span class="test-duration">\${durationS}s</span>
               <span class="status-indicator">\${test.status === 'timedOut' ? 'timeout' : test.status}</span>
+              <span class="chevron-arrow">▶</span>
             </div>
           </div>
           \${detailsHtml}
@@ -796,11 +814,29 @@ class CustomReporter implements Reporter {
       const panel = document.getElementById('details-' + id);
       if (!panel) return;
       
+      const itemEl = panel.parentElement;
       if (panel.style.display === 'block') {
         panel.style.display = 'none';
+        itemEl.classList.remove('expanded');
       } else {
         panel.style.display = 'block';
+        itemEl.classList.add('expanded');
       }
+    };
+
+    // Global toggle for all details
+    window.toggleAllDetails = function(expand) {
+      const panels = document.querySelectorAll('.test-details');
+      panels.forEach(panel => {
+        const itemEl = panel.parentElement;
+        if (expand) {
+          panel.style.display = 'block';
+          itemEl.classList.add('expanded');
+        } else {
+          panel.style.display = 'none';
+          itemEl.classList.remove('expanded');
+        }
+      });
     };
 
     // Helper to prevent HTML Injection
