@@ -41,7 +41,8 @@ export default defineConfig({
 
   /* Reporter configuration */
   reporter: [
-    ['./utils/custom-reporter.ts']
+    ['./utils/custom-reporter.ts'],
+    ['list']
   ],
 
   /* Shared settings for all projects */
@@ -59,7 +60,7 @@ export default defineConfig({
     video: 'retain-on-failure',
 
     /* Headless mode */
-    headless: envConfig.HEADLESS,
+    headless: process.env.CI ? true : envConfig.HEADLESS,
 
     /* Navigation timeout */
     navigationTimeout: 45_000,

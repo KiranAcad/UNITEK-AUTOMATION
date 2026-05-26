@@ -103,7 +103,7 @@ test.describe('Homepage 100% Comprehensive Verification Suite @homepage-comp', (
     logger.info('TC-HPC-03 completed');
   });
 
-  test('TC-HPC-04: Verify page title and URL', async ({ homePage }) => {
+  test('TC-HPC-04: Verify page title and URL @smoke @sanity', async ({ homePage }) => {
     logger.info('Starting TC-HPC-04: Verify page title and URL');
 
     logger.info('Asserting that the homepage title contains "Unitek College"');

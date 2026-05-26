@@ -12,6 +12,7 @@
     "pretest:prod": "npm run pretest",
     "test": "npx playwright test",
     "test:qa": "cross-env TEST_ENV=qa npx playwright test",
+    "test:smoke": "cross-env TEST_ENV=qa npx playwright test --grep \"@smoke|@sanity\" --project=chromium",
     "test:uat": "cross-env TEST_ENV=uat npx playwright test",
     "test:staging": "cross-env TEST_ENV=staging npx playwright test",
     "test:prod": "cross-env TEST_ENV=prod npx playwright test",

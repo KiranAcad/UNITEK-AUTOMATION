@@ -26,7 +26,7 @@ test.describe('Lead Capture Form Tests @lead-form', () => {
 
   // ─── Form Visibility ─────────────────────────────────
 
-  test('TC-LF-01: Verify lead form container visibility and visual dimensions', async ({ leadFormPage, page }) => {
+  test('TC-LF-01: Verify lead form container visibility and visual dimensions @smoke @sanity', async ({ leadFormPage, page }) => {
     logger.info('Starting TC-LF-01: Verify lead form container visibility and visual dimensions');
 
     logger.info('Verifying lead form container visibility in Page Object Model (POM)');
