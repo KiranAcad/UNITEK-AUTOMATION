@@ -2,6 +2,13 @@ import { Reporter, TestCase, TestResult, FullResult, FullConfig } from '@playwri
 import * as fs from 'fs';
 import * as path from 'path';
 
+export interface CustomTestStep {
+  title: string;
+  category: string;
+  duration: number;
+  error?: string;
+}
+
 export interface CustomTestResult {
   id: string;
   title: string;
@@ -11,6 +18,7 @@ export interface CustomTestResult {
   duration: number;
   error?: string;
   stack?: string;
+  steps: CustomTestStep[];
 }
 
 export interface ReportData {
@@ -51,6 +59,27 @@ class CustomReporter implements Reporter {
       parent = parent.parent;
     }
 
+    // Extract chronological test execution steps
+    const extractedSteps = result.steps.map(s => {
+      let displayCategory = 'action';
+      if (s.category === 'expect') {
+        displayCategory = 'assertion';
+      } else if (s.category === 'hook') {
+        displayCategory = 'hook';
+      } else if (s.category === 'test.step') {
+        displayCategory = 'step';
+      } else if (s.category === 'pw:api') {
+        displayCategory = 'api';
+      }
+
+      return {
+        title: s.title,
+        category: displayCategory,
+        duration: s.duration,
+        error: s.error?.message || undefined
+      };
+    });
+
     this.testResults.push({
       id: test.id,
       title: test.title,
@@ -60,6 +89,7 @@ class CustomReporter implements Reporter {
       duration: result.duration,
       error: errorMsg,
       stack: stackTrace,
+      steps: extractedSteps,
     });
   }
 
@@ -434,10 +464,123 @@ class CustomReporter implements Reporter {
 
     /* --- Expandable details --- */
     .test-details {
-      display: none;
+      display: block;
       background-color: var(--bg-item);
       border-top: 1px solid var(--border-color);
       padding: 1.25rem;
+    }
+
+    .chevron-arrow {
+      display: inline-block;
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      margin-left: 0.75rem;
+      transition: transform 0.2s ease;
+      transform: rotate(0deg);
+    }
+
+    .test-item.expanded .chevron-arrow {
+      transform: rotate(90deg);
+    }
+
+    /* --- Chronological Steps Executed --- */
+    .steps-section {
+      margin-top: 1rem;
+      border-top: 1px dashed var(--border-color);
+      padding-top: 1rem;
+    }
+
+    .steps-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.75px;
+      margin-bottom: 0.75rem;
+    }
+
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+      transition: border-color 0.15s ease;
+    }
+
+    .step-item:hover {
+      border-color: #3b4764;
+    }
+
+    .step-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.25px;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      width: 75px;
+      text-align: center;
+    }
+
+    .step-badge.step {
+      background-color: rgba(99, 102, 241, 0.1);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .step-badge.assertion {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .step-badge.api {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .step-badge.hook {
+      background-color: rgba(148, 163, 184, 0.1);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .step-badge.action {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: #fda4af;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .step-title-text {
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .step-duration {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
     }
 
     .error-alert {
@@ -555,6 +698,10 @@ class CustomReporter implements Reporter {
         <button class="filter-btn" data-status="failed" style="border-bottom: 2px solid var(--color-danger)">Failed</button>
         <button class="filter-btn" data-status="skipped" style="border-bottom: 2px solid var(--color-warning)">Skipped</button>
       </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="filter-btn" style="background-color: rgba(99,102,241,0.05); color: #818cf8; border-color: rgba(99,102,241,0.2);" onclick="toggleAllDetails(true)">Expand All</button>
+        <button class="filter-btn" onclick="toggleAllDetails(false)">Collapse All</button>
+      </div>
     </div>
 
     <div class="test-list" id="test-list-container">
@@ -600,25 +747,45 @@ class CustomReporter implements Reporter {
 
       filtered.forEach(test => {
         const item = document.createElement('div');
-        item.className = 'test-item ' + test.status;
+        item.className = 'test-item expanded ' + test.status;
         
-        let detailsHtml = '';
-        if (test.status === 'failed' || test.status === 'timedOut') {
-          detailsHtml = \`
-            <div class="test-details" id="details-\${test.id}">
-              \${test.error ? \`
-                <div class="error-alert">
-                  <div class="error-title">Failure Message</div>
-                  <div class="error-msg">\${escapeHtml(test.error)}</div>
-                </div>
-              \` : ''}
-              \${test.stack ? \`
-                <div class="stack-title">Call Stack Trace</div>
-                <pre class="stack-trace">\${escapeHtml(test.stack)}</pre>
-              \` : ''}
+        let stepsHtml = '';
+        if (test.steps && test.steps.length > 0) {
+          stepsHtml = \`
+            <div class="steps-section">
+              <div class="steps-title">Steps Executed</div>
+              <div class="steps-list">
+                \${test.steps.map(step => {
+                  return \`
+                    <div class="step-item">
+                      <div class="step-meta-left">
+                        <span class="step-badge \${step.category}">\${step.category}</span>
+                        <span class="step-title-text">\${escapeHtml(step.title)}</span>
+                      </div>
+                      <span class="step-duration">\${step.duration}ms</span>
+                    </div>
+                  \`;
+                }).join('')}
+              </div>
             </div>
           \`;
         }
+
+        const detailsHtml = \`
+          <div class="test-details" id="details-\${test.id}" style="display: block;">
+            \${test.error ? \`
+              <div class="error-alert">
+                <div class="error-title">Failure Message</div>
+                <div class="error-msg">\${escapeHtml(test.error)}</div>
+              </div>
+            \` : ''}
+            \${test.stack ? \`
+              <div class="stack-title">Call Stack Trace</div>
+              <pre class="stack-trace">\${escapeHtml(test.stack)}</pre>
+            \` : ''}
+            \${stepsHtml}
+          </div>
+        \`;
 
         const durationS = (test.duration / 1000).toFixed(2);
 
@@ -632,6 +799,7 @@ class CustomReporter implements Reporter {
               <span class="test-browser">\${escapeHtml(test.browser)}</span>
               <span class="test-duration">\${durationS}s</span>
               <span class="status-indicator">\${test.status === 'timedOut' ? 'timeout' : test.status}</span>
+              <span class="chevron-arrow">▶</span>
             </div>
           </div>
           \${detailsHtml}
@@ -646,11 +814,29 @@ class CustomReporter implements Reporter {
       const panel = document.getElementById('details-' + id);
       if (!panel) return;
       
+      const itemEl = panel.parentElement;
       if (panel.style.display === 'block') {
         panel.style.display = 'none';
+        itemEl.classList.remove('expanded');
       } else {
         panel.style.display = 'block';
+        itemEl.classList.add('expanded');
       }
+    };
+
+    // Global toggle for all details
+    window.toggleAllDetails = function(expand) {
+      const panels = document.querySelectorAll('.test-details');
+      panels.forEach(panel => {
+        const itemEl = panel.parentElement;
+        if (expand) {
+          panel.style.display = 'block';
+          itemEl.classList.add('expanded');
+        } else {
+          panel.style.display = 'none';
+          itemEl.classList.remove('expanded');
+        }
+      });
     };
 
     // Helper to prevent HTML Injection
