@@ -17,6 +17,7 @@ import { logger } from '../logger';
 import leadFormData from '../test-data/lead-form.data.json';
 
 test.describe('Lead Capture Form Tests @lead-form', () => {
+  // Verified dual-trigger CI/CD pipeline integration with Option B (Full Regression on PR)
 
   test.beforeEach(async ({ homePage }) => {
     logger.info('Starting test setup: Navigating to homepage for Lead Form checks');
