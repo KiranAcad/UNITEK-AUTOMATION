@@ -7,6 +7,7 @@ export interface CustomTestStep {
   category: string;
   duration: number;
   error?: string;
+  depth?: number;
 }
 
 export interface CustomTestResult {
@@ -59,8 +60,106 @@ class CustomReporter implements Reporter {
       parent = parent.parent;
     }
 
-    // Extract chronological test execution steps
-    const extractedSteps = result.steps.map(s => {
+    // Translation function to map technical playwright commands into plain English
+    const translateStepToEnglish = (title: string, category: string): string => {
+      const clean = title.trim();
+
+      if (category === 'hook') {
+        if (clean.toLowerCase().includes('before')) return 'Preparing test environment contexts';
+        if (clean.toLowerCase().includes('after')) return 'Cleaning up and closing test execution contexts';
+        return clean;
+      }
+
+      if (category === 'expect') {
+        let matcher = '';
+        const matchReg = /expect\s*["']([^"']+)["']/i.exec(clean);
+        if (matchReg) matcher = matchReg[1];
+
+        let selector = '';
+        const selReg = /locator\(['"]([^'"]+)['"]\)/i.exec(clean);
+        if (selReg) selector = selReg[1];
+
+        if (matcher === 'toBeVisible') {
+          return selector ? `Verifying that element "${selector}" is visible` : 'Verifying element visibility';
+        } else if (matcher === 'toBeHidden') {
+          return selector ? `Verifying that element "${selector}" is hidden` : 'Verifying element is hidden';
+        } else if (matcher === 'toHaveURL') {
+          return 'Verifying that the current browser URL matches the expected path';
+        } else if (matcher === 'toHaveTitle') {
+          return 'Verifying that the current page title matches expectation';
+        } else if (matcher === 'toContainText' || matcher === 'toHaveText') {
+          return selector ? `Verifying that element "${selector}" contains expected text` : 'Verifying text contents of element';
+        } else if (matcher === 'toBeEnabled') {
+          return selector ? `Verifying that field "${selector}" is enabled` : 'Verifying field is enabled';
+        } else if (matcher === 'toBeDisabled') {
+          return selector ? `Verifying that field "${selector}" is disabled` : 'Verifying field is disabled';
+        } else if (matcher === 'toBeChecked') {
+          return selector ? `Verifying that checkbox "${selector}" is checked` : 'Verifying checkbox selection';
+        } else if (['toBe', 'toEqual', 'toBeGreaterThan', 'toBeLessThanOrEqual'].includes(matcher)) {
+          return 'Verifying numerical layout values match boundary expectations';
+        }
+        return `Asserting criteria: ${matcher}`;
+      }
+
+      if (category === 'pw:api') {
+        if (clean.includes('click')) {
+          const match = /click\((.*)\)/i.exec(clean);
+          const selector = match ? match[1].replace(/['"]/g, '') : '';
+          return selector ? `Clicking on element "${selector}"` : 'Clicking on page element';
+        }
+        if (clean.includes('fill')) {
+          const match = /fill\((.*)\)/i.exec(clean);
+          const selector = match ? match[1].split(',')[0].replace(/['"]/g, '') : '';
+          return selector ? `Entering text value into field "${selector}"` : 'Typing text input';
+        }
+        if (clean.includes('clear')) {
+          return 'Clearing text input field';
+        }
+        if (clean.includes('goto')) {
+          const match = /goto\((.*)\)/i.exec(clean);
+          const url = match ? match[1].replace(/['"]/g, '') : '';
+          return url ? `Navigating browser to page URL: "${url}"` : 'Navigating to page';
+        }
+        if (clean.includes('hover')) {
+          const match = /hover\((.*)\)/i.exec(clean);
+          const selector = match ? match[1].replace(/['"]/g, '') : '';
+          return selector ? `Hovering cursor over element "${selector}"` : 'Hovering over element';
+        }
+        if (clean.includes('press')) {
+          const match = /press\((.*)\)/i.exec(clean);
+          const key = match ? match[1].replace(/['"]/g, '') : '';
+          return key ? `Pressing keyboard key: "${key}"` : 'Pressing keyboard key';
+        }
+        if (clean.includes('selectOption')) {
+          const match = /selectOption\((.*)\)/i.exec(clean);
+          const selector = match ? match[1].split(',')[0].replace(/['"]/g, '') : '';
+          return selector ? `Selecting option in dropdown list "${selector}"` : 'Selecting dropdown option';
+        }
+      }
+
+      return clean;
+    };
+
+    // Helper to recursively flatten the step tree while maintaining depth levels
+    const flattenSteps = (steps: any[]): { step: any, depth: number }[] => {
+      const flat: { step: any, depth: number }[] = [];
+      const traverse = (list: any[], depth: number) => {
+        for (const s of list) {
+          flat.push({ step: s, depth });
+          if (s.steps && s.steps.length > 0) {
+            traverse(s.steps, depth + 1);
+          }
+        }
+      };
+      traverse(steps, 0);
+      return flat;
+    };
+
+    const flatStepsList = flattenSteps(result.steps);
+
+    // Extract chronological test execution steps with depth tracking
+    const extractedSteps: CustomTestStep[] = flatStepsList.map(item => {
+      const s = item.step;
       let displayCategory = 'action';
       if (s.category === 'expect') {
         displayCategory = 'assertion';
@@ -72,13 +171,39 @@ class CustomReporter implements Reporter {
         displayCategory = 'api';
       }
 
+      const friendlyTitle = translateStepToEnglish(s.title, s.category);
+
       return {
-        title: s.title,
+        title: friendlyTitle,
         category: displayCategory,
         duration: s.duration,
-        error: s.error?.message || undefined
+        error: s.error?.message || undefined,
+        depth: item.depth
       };
     });
+
+    // Print chronological steps directly to the console
+    const statusSymbol = result.status === 'passed' ? '\x1b[32m✓\x1b[0m' : result.status === 'failed' ? '\x1b[31m✗\x1b[0m' : '\x1b[33m-\x1b[0m';
+    const statusColor = result.status === 'passed' ? '\x1b[32m' : result.status === 'failed' ? '\x1b[31m' : '\x1b[33m';
+
+    console.log(`\n${statusSymbol} ${statusColor}[${projectName.toUpperCase()}]\x1b[0m › \x1b[90m${relativePath}\x1b[0m › \x1b[1m${test.title}\x1b[0m (\x1b[36m${(result.duration / 1000).toFixed(2)}s\x1b[0m)`);
+    
+    if (extractedSteps.length > 0) {
+      console.log('    \x1b[90mSteps Executed:\x1b[0m');
+      extractedSteps.forEach((step, idx) => {
+        const indent = '  '.repeat(step.depth || 0);
+        let categoryColor = '\x1b[90m'; // Gray
+        if (step.category === 'assertion') categoryColor = '\x1b[32m'; // Green
+        if (step.category === 'api') categoryColor = '\x1b[33m'; // Yellow
+        if (step.category === 'step') categoryColor = '\x1b[36m'; // Cyan
+        if (step.category === 'hook') categoryColor = '\x1b[90m'; // Gray
+
+        console.log(`      ${indent}\x1b[90m${idx + 1}.\x1b[0m ${categoryColor}[${step.category.toUpperCase()}]\x1b[0m \x1b[37m${step.title}\x1b[0m \x1b[90m(${step.duration}ms)\x1b[0m`);
+        if (step.error) {
+          console.log(`      ${indent}   \x1b[31m🚨 Error: ${step.error}\x1b[0m`);
+        }
+      });
+    }
 
     this.testResults.push({
       id: test.id,
@@ -755,9 +880,10 @@ class CustomReporter implements Reporter {
             <div class="steps-section">
               <div class="steps-title">Steps Executed</div>
               <div class="steps-list">
-                \${test.steps.map(step => {
+                 \${test.steps.map(step => {
+                  const indentStyle = step.depth ? \`style="margin-left: \\\${step.depth * 1.25}rem; border-left: 2px solid var(--border-color); opacity: 0.95;"\` : '';
                   return \`
-                    <div class="step-item">
+                    <div class="step-item" \${indentStyle}>
                       <div class="step-meta-left">
                         <span class="step-badge \${step.category}">\${step.category}</span>
                         <span class="step-title-text">\${escapeHtml(step.title)}</span>
