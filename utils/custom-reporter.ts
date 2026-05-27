@@ -225,6 +225,43 @@ class CustomReporter implements Reporter {
     const skipped = this.testResults.filter(r => r.status === 'skipped').length;
     const total = this.testResults.length;
 
+    // Track failed test cases in failed-tests.json
+    const failedTestsFile = path.resolve(process.cwd(), 'failed-tests.json');
+    let failedTestsList: { file: string; title: string }[] = [];
+
+    if (fs.existsSync(failedTestsFile)) {
+      try {
+        failedTestsList = JSON.parse(fs.readFileSync(failedTestsFile, 'utf8'));
+      } catch (err) {
+        failedTestsList = [];
+      }
+    }
+
+    this.testResults.forEach(r => {
+      const isFailed = r.status === 'failed' || r.status === 'timedOut';
+      const isPassed = r.status === 'passed';
+      const file = r.suite;
+      const title = r.title;
+
+      const index = failedTestsList.findIndex(t => t.file === file && t.title === title);
+
+      if (isFailed) {
+        if (index === -1) {
+          failedTestsList.push({ file, title });
+        }
+      } else if (isPassed) {
+        if (index !== -1) {
+          failedTestsList.splice(index, 1);
+        }
+      }
+    });
+
+    try {
+      fs.writeFileSync(failedTestsFile, JSON.stringify(failedTestsList, null, 2), 'utf8');
+    } catch (err) {
+      console.error('\x1b[31mFailed to write failed-tests.json:\x1b[0m', err);
+    }
+
     // Resolve environment name
     const activeEnv = (process.env.TEST_ENV || 'qa').toUpperCase();
 
