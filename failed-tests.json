@@ -1,0 +1,6 @@
+[
+  {
+    "file": "tests\\campus-locations-comprehensive.spec.ts",
+    "title": "TC-CL-30: Verify scroll chevron left click trigger action executes"
+  }
+]

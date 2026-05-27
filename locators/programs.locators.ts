@@ -24,10 +24,10 @@ export const ProgramsLocators = {
   searchInput: 'input[placeholder*="Search"], input#search, .search-filters input[type="text"]',
 
   /** Campus selector dropdown */
-  campusSelect: 'select#campus, select[name="campus"], .filter-select[name*="campus"]',
+  campusSelect: 'select#campus, select[name="campus"], .filter-select[name*="campus"], select#contacts_campus',
 
   /** Program Area / Category selector dropdown */
-  programAreaSelect: 'select#program-area, select[name="area"], .filter-select[name*="area"], select[name*="category"]',
+  programAreaSelect: 'select#program-area, select[name="area"], .filter-select[name*="area"], select[name*="category"], select#contacts_program, [role="tab"], .program-tab',
 
   /** Reset / Clear all active filters button */
   resetFiltersBtn: 'button.reset-filters, button.clear-filters, a.clear-filters',

@@ -4,6 +4,8 @@ import { HomePage } from '../pages/home.page';
 import { LeadFormPage } from '../pages/lead-form.page';
 import { SearchPage } from '../pages/search.page';
 import { ProgramsPage } from '../pages/programs.page';
+import { ProgramDetailPage } from '../pages/program-detail.page';
+import { CampusLocationsPage } from '../pages/campus-locations.page';
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,6 +16,8 @@ type CustomFixtures = {
   leadFormPage: LeadFormPage;
   searchPage: SearchPage;
   programsPage: ProgramsPage;
+  programDetailPage: ProgramDetailPage;
+  campusLocationsPage: CampusLocationsPage;
 };
 
 /**
@@ -74,6 +78,16 @@ export const test = base.extend<CustomFixtures & { _loggerAuto: void }>({
   programsPage: async ({ page }, use) => {
     const programsPage = new ProgramsPage(page);
     await use(programsPage);
+  },
+
+  programDetailPage: async ({ page }, use) => {
+    const programDetailPage = new ProgramDetailPage(page);
+    await use(programDetailPage);
+  },
+
+  campusLocationsPage: async ({ page }, use) => {
+    const campusLocationsPage = new CampusLocationsPage(page);
+    await use(campusLocationsPage);
   },
 });
 

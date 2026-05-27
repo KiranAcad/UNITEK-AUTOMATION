@@ -22,6 +22,7 @@
     "test:webkit": "npx playwright test --project=webkit",
     "test:debug": "npx playwright test --debug",
     "test:ui": "npx playwright test --ui",
+    "test:failed": "node utils/run-failed.js",
     "report": "start reports/custom-report.html",
     "lint": "eslint . --ext .ts",
     "clean": "rimraf reports screenshots videos logs test-results"
